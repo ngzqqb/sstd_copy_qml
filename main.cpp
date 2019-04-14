@@ -10,6 +10,7 @@
 #include <regex>
 #include <string>
 #include <string_view>
+using namespace std::string_view_literals;
 
 #include <utility>
 #include <algorithm>
@@ -54,6 +55,70 @@ namespace the {
         return filesystem::remove(arg);
     } catch (...) {
         return false;
+    }
+
+    template<typename T, typename U>
+    inline void __parser_qml(T &varReadStream, U&varOutStream) try {
+
+        enum {
+            normal_line = 0,
+            begin_type = 1,
+            end_type = 2,
+        };
+
+        class Line : public std::string {
+        public:
+            std::size_t type = normal_line;
+        };
+
+        std::vector<Line> varLines;
+
+        const static std::regex varRegexDebugBegin{ "(?:" "\xef" "\xbb" "\xbf" ")?" "\\s*/\\*begin:debug\\*/\\s*" , std::regex::icase };
+        const static std::regex varRegexDebugEnd{ u8R"(\s*/\*end:debug\*/\s*)", std::regex::icase };
+        bool hasDebugData = false;
+
+        while (varReadStream.good()) {
+            Line varLine;
+            std::getline(varReadStream, varLine);
+            if (varLine.empty() == false) {
+                if (std::regex_match(varLine, varRegexDebugBegin)) {
+                    varLine.type = begin_type;
+                    hasDebugData = true;
+                } else if (std::regex_match(varLine, varRegexDebugEnd)) {
+                    varLine.type = end_type;
+                    hasDebugData = true;
+                }
+            }
+            varLines.push_back(std::move(varLine));
+        }
+
+        if (varLines.empty()) {
+            return;
+        }
+
+        if (false == hasDebugData) {
+            return;
+        }
+
+        int varDebugCount = 0;
+        for (const auto & varLine : varLines) {
+
+            const auto varOldDebugCount = varDebugCount;
+            if (varLine.type == begin_type) {
+                ++varDebugCount;
+            } else if (varLine.type == end_type) {
+                --varDebugCount;
+            }
+
+            if ((0 < varDebugCount) || (0 < varOldDebugCount)) {
+                varOutStream << u8"/*remove debug information*/"sv << std::endl;
+            } else {
+                varOutStream << varLine << std::endl;
+            }
+
+        }
+
+    } catch (...) {
     }
 
     inline bool copyAFile(
@@ -107,7 +172,18 @@ namespace the {
             return false;
         }
 
-        varWrite << varRead.rdbuf();
+        bool varIsQml;
+        {
+            const static std::regex varRegex{ "\\.qml", std::regex::icase };
+            const auto varExtension = varTo.extension().string();
+            varIsQml = std::regex_match(varExtension, varRegex);
+        }
+
+        if (varIsQml) {
+            __parser_qml(varRead, varWrite);
+        } else {
+            varWrite << varRead.rdbuf();
+        }
 
         return true;
     } catch (...) {
@@ -152,7 +228,7 @@ namespace the {
 
         for (; varPos != varEnd; ++varPos) {
 
-            if (filesystem::is_directory( varPos->status())) {
+            if (filesystem::is_directory(varPos->status())) {
 
                 filesystem::create_directories(varTo / varPos->path().filename());
                 varAns.emplace_back(varPos->path(), varTo / varPos->path().filename());
