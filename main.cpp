@@ -189,6 +189,8 @@ namespace the {
 
 int main(int argc, char ** argv) try {
 
+    static_assert(UnknowError < 0);
+
     if (argc < 3) {
         return ArgNotEnough;
     }
