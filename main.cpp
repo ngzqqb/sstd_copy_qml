@@ -9,7 +9,10 @@
 #include <algorithm>
 
 enum ErrorCodeC : int {
-    ArgNotEnough = -99999,
+    ArgNotEnough = -99,
+    CopyDirError,
+    CopyFileError,
+    UnknowError,
 };
 
 #if __has_include( <filesystem> )
@@ -184,7 +187,7 @@ namespace the {
 }/*namespace the*/
 
 
-int main(int argc, char ** argv) {
+int main(int argc, char ** argv) try {
 
     if (argc < 3) {
         return ArgNotEnough;
@@ -195,15 +198,18 @@ int main(int argc, char ** argv) {
 
     if (the::filesystem::is_directory(varFrom)) {
         if (false == the::copyADir(varFrom, varTo)) {
+            return CopyDirError;
         }
-
     } else {
         if (false == the::copyAFile(varFrom, varTo)) {
+            return CopyFileError;
         }
-
     }
 
     return 0;
+
+} catch (...) {
+    return UnknowError;
 }
 
 
