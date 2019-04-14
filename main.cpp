@@ -51,65 +51,29 @@ namespace the {
         const filesystem::path & varFrom,
         const filesystem::path & varTo) try {
 
-            {
-                /*创建根路径*/
-                auto varDir = varTo.parent_path();
-                filesystem::create_directories(varDir);
-            }
+        if (!filesystem::exists(varFrom)) {
+            return false;
+        }
 
-            if (filesystem::exists(varTo)) {
+        if (filesystem::is_directory(varFrom)) {
+            return false;
+        }
 
-                if (filesystem::is_directory(varTo)) {/*is dir*/
+        {
+            /*创建根路径*/
+            auto varDir = varTo.parent_path();
+            filesystem::create_directories(varDir);
+        }
 
-                    if (false == deleteDir(varTo)) {
-                        return false;
-                    }
+        if (filesystem::exists(varTo)) {
 
-                } else {/*is file*/
+            if (filesystem::is_directory(varTo)) {/*is dir*/
 
-                    auto varReallyTo = filesystem::canonical(varTo);
-                    if (varReallyTo.filename() != varTo.filename()) {
-                        filesystem::rename(varReallyTo, varTo);
-                    }
-
+                if (false == deleteDir(varTo)) {
+                    return false;
                 }
 
-            }
-
-            std::ifstream varRead{ getStreamFileName(varFrom) , std::ios::binary };
-            std::ofstream varWrite{ getStreamFileName(varTo)  , std::ios::binary };
-
-            if (false == varRead.is_open()) {
-                return false;
-            }
-
-            if (false == varWrite.is_open()) {
-                return false;
-            }
-
-            varWrite << varRead.rdbuf();
-
-            return true;
-    } catch (...) {
-        return false;
-    }
-
-    inline std::list< std::pair<filesystem::path, filesystem::path> >  _copyADir(
-        const filesystem::path & varFrom, const filesystem::path & varTo) {
-
-            {
-                /*创建根路径*/
-                auto varDir = varTo.parent_path();
-                filesystem::create_directories(varDir);
-            }
-
-            if (filesystem::exists(varTo)) {
-
-                if (!filesystem::is_directory(varTo)) {
-                    if (false == deleteFile(varTo)) {
-                        return {};
-                    }
-                }
+            } else {/*is file*/
 
                 auto varReallyTo = filesystem::canonical(varTo);
                 if (varReallyTo.filename() != varTo.filename()) {
@@ -118,27 +82,79 @@ namespace the {
 
             }
 
-            filesystem::directory_iterator varPos{ varFrom };
-            filesystem::directory_iterator varEnd;
-            std::list< std::pair<filesystem::path, filesystem::path> > varAns;
+        }
 
-            for (; varPos != varEnd; ++varPos) {
+        std::ifstream varRead{ getStreamFileName(varFrom) , std::ios::binary };
+        std::ofstream varWrite{ getStreamFileName(varTo)  , std::ios::binary };
 
-                if (varPos->is_directory()) {
+        if (false == varRead.is_open()) {
+            return false;
+        }
 
-                    varAns.emplace_back(varPos->path(), varTo / varPos->path().filename());
+        if (false == varWrite.is_open()) {
+            return false;
+        }
 
-                } else {
+        varWrite << varRead.rdbuf();
 
-                    if (false == copyAFile(varPos->path(), varTo / varPos->path().filename())) {
-                        return {};
-                    }
+        return true;
+    } catch (...) {
+        return false;
+    }
 
+    inline std::list< std::pair<filesystem::path, filesystem::path> >  _copyADir(
+        const filesystem::path & varFrom, const filesystem::path & varTo) {
+
+        if (!filesystem::exists(varFrom)) {
+            return {};
+        }
+
+        if (!filesystem::is_directory(varFrom)) {
+            return {};
+        }
+
+        {
+            /*创建根路径*/
+            auto varDir = varTo.parent_path();
+            filesystem::create_directories(varDir);
+        }
+
+        if (filesystem::exists(varTo)) {
+
+            if (!filesystem::is_directory(varTo)) {
+                if (false == deleteFile(varTo)) {
+                    return {};
+                }
+            }
+
+            auto varReallyTo = filesystem::canonical(varTo);
+            if (varReallyTo.filename() != varTo.filename()) {
+                filesystem::rename(varReallyTo, varTo);
+            }
+
+        }
+
+        filesystem::directory_iterator varPos{ varFrom };
+        filesystem::directory_iterator varEnd;
+        std::list< std::pair<filesystem::path, filesystem::path> > varAns;
+
+        for (; varPos != varEnd; ++varPos) {
+
+            if (varPos->is_directory()) {
+
+                varAns.emplace_back(varPos->path(), varTo / varPos->path().filename());
+
+            } else {
+
+                if (false == copyAFile(varPos->path(), varTo / varPos->path().filename())) {
+                    return {};
                 }
 
             }
 
-            return std::move(varAns);
+        }
+
+        return std::move(varAns);
 
     }
 
