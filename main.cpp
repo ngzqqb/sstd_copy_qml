@@ -117,7 +117,7 @@ namespace the {
             if ((0 < varDebugCount) || (0 < varOldDebugCount)) {
                 varOutStream << u8"/*remove debug information*/"sv << std::endl;
             } else {
-                varOutStream << varLine << std::endl;
+                varOutStream << varLine << '\n';
             }
 
         }
