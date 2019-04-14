@@ -146,7 +146,7 @@ namespace the {
 
         for (; varPos != varEnd; ++varPos) {
 
-            if (varPos->is_directory()) {
+            if (filesystem::is_directory( varPos->status())) {
 
                 filesystem::create_directories(varTo / varPos->path().filename());
                 varAns.emplace_back(varPos->path(), varTo / varPos->path().filename());
