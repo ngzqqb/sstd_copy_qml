@@ -55,8 +55,8 @@ namespace the {
 
 namespace the {
 
-    inline std::set<std::string,std::less<>> & configs(){
-        static std::set<std::string,std::less<>> varAns;
+    inline std::set<std::string, std::less<>> & configs() {
+        static std::set<std::string, std::less<>> varAns;
         return varAns;
     }
 
@@ -106,10 +106,10 @@ namespace the {
                 } else if (std::regex_match(varLine, varRegexDebugEnd)) {
                     varLine.type = end_type;
                     hasDebugData = true;
-                } else if(std::regex_match(varLine,varRegexImportEnd)){
+                } else if (std::regex_match(varLine, varRegexImportEnd)) {
                     varLine.type = end_import_type;
                     hasDebugData = true;
-                } else if(std::regex_match(varLine,varRegexImportBegin)) {
+                } else if (std::regex_match(varLine, varRegexImportBegin)) {
                     varLine.type = begin_import_type;
                     hasDebugData = true;
                 }
@@ -129,9 +129,9 @@ namespace the {
             return;
         }
 
-        int varDebugCount  = 0;
+        int varDebugCount = 0;
         int varImportCount = 0;
-        const auto varIsRelease = configs().count("release"sv)>0;
+        const auto varIsRelease = configs().count("release"sv) > 0;
         const static std::regex varRegexTheDebug{ u8R"(_the_debug)", std::regex::icase };
 
         for (const auto & varLine : varLines) {
@@ -139,16 +139,16 @@ namespace the {
             const auto varOldDebugCount = varDebugCount;
 
             switch (varLine.type) {
-                case begin_type:++varDebugCount;break;
-                case end_type:--varDebugCount;break;
-                case begin_import_type:++varImportCount;break;
-                case end_import_type:--varImportCount;break;
+            case begin_type:++varDebugCount; break;
+            case end_type:--varDebugCount; break;
+            case begin_import_type:++varImportCount; break;
+            case end_import_type:--varImportCount; break;
             }
 
             if ((0 < varDebugCount) || (0 < varOldDebugCount)) {
                 varOutStream << u8"/*remove debug information*/"sv << '\n';
-            } else if(varIsRelease && (varImportCount>0) ) {
-                varOutStream <<std::regex_replace(varLine,varRegexTheDebug,""s) << '\n';
+            } else if (varIsRelease && (varImportCount > 0)) {
+                varOutStream << std::regex_replace(varLine, varRegexTheDebug, ""s) << '\n';
             } else {
                 varOutStream << varLine << '\n';
             }
@@ -210,7 +210,10 @@ namespace the {
         }
 
         bool varIsQml;
-        {
+        if (configs().count("debug"sv) > 0) {
+            /*debug 模式直接copy*/
+            varIsQml = false;
+        } else {
             const static std::regex varRegex{ "\\.qml", std::regex::icase };
             const auto varExtension = varTo.extension().string();
             varIsQml = std::regex_match(varExtension, varRegex);
@@ -324,8 +327,8 @@ int main(int argc, char ** argv) try {
         return ArgNotEnough;
     }
 
-    for(int varIndex =3;varIndex<argc;++varIndex){
-        the::configs().insert( argv[varIndex] );
+    for (int varIndex = 3; varIndex < argc; ++varIndex) {
+        the::configs().insert(argv[varIndex]);
     }
 
     the::filesystem::path varFrom(argv[1]);
