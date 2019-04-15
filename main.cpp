@@ -52,6 +52,7 @@ namespace the {
 
 #include <fstream>
 #include <iostream>
+#include <cctype>
 
 namespace the {
 
@@ -70,6 +71,68 @@ namespace the {
         return filesystem::remove(arg);
     } catch (...) {
         return false;
+    }
+
+    inline std::string trime_left(std::string varArg) {
+        std::size_t varFirstNotSpace{ 0 };
+        for (const auto & varI : varArg) {
+            if (::isspace(varI)) {
+                ++varFirstNotSpace;
+            } else {
+                break;
+            }
+        }
+        auto varLength = varArg.size() - varFirstNotSpace;
+        if (varLength < 1) {
+            return ""s;
+        }
+        return { varArg.data() + varFirstNotSpace, varLength };
+    }
+
+    template<typename T, typename U>
+    inline void __parser_qmldir(T &varReadStream, U&varOutStream) try {
+
+        std::string varDebugModuleName;
+        std::string varReleaseModuleName;
+
+        constexpr auto varModule = "module"sv;
+
+        using Line = std::string;
+
+        std::vector<Line> varLines;
+        const static std::regex varRegexTheDebug{ u8R"(_the_debug)", std::regex::icase };
+
+        while (varReadStream.good()) {
+            Line varLine;
+            std::getline(varReadStream, varLine);
+            varLine = trime_left(varLine);
+            if ((varLine.find(varModule) == 0) && (varLine.size() > varModule.size()) &&
+                (false != ::isspace(varLine[varModule.size()]))) {
+                varDebugModuleName = trime_left(Line(varLine.data() + varModule.size(),
+                    varLine.size() - varModule.size()));
+                if (varReleaseModuleName.empty()) {
+                    varReleaseModuleName = std::regex_replace(varDebugModuleName, varRegexTheDebug, ""s);
+                }
+                continue;
+            }
+            varLines.push_back(std::move(varLine));
+        }
+
+        if (configs().count("release") > 0) {
+            if (varReleaseModuleName.size()) {
+                varOutStream << "module "sv << varReleaseModuleName << '\n';
+            }
+        } else {
+            if (varDebugModuleName.size()) {
+                varOutStream << "module "sv << varDebugModuleName << '\n';
+            }
+        }
+
+        for (const auto & varI : varLines) {
+            varOutStream << varI << '\n';
+        }
+
+    } catch (...) {
     }
 
     template<typename T, typename U>
@@ -200,6 +263,11 @@ namespace the {
 
         varRead.sync_with_stdio(false);
         varWrite.sync_with_stdio(false);
+
+        if (varTo.filename().wstring() == LR"(qmldir)"sv) {
+            __parser_qmldir(varRead, varWrite);
+            return true;
+        }
 
         if (false == varRead.is_open()) {
             return false;
