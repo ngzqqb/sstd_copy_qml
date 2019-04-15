@@ -11,7 +11,7 @@
 //将
     /*begin:import*/
     /*end:import*/
-//之间的the_debug删除
+//之间的_the_debug删除
 
 #include <list>
 #include <set>
@@ -55,8 +55,8 @@ namespace the {
 
 namespace the {
 
-    inline std::set<std::string> & configs(){
-        static std::set<std::string> varAns;
+    inline std::set<std::string,std::less<>> & configs(){
+        static std::set<std::string,std::less<>> varAns;
         return varAns;
     }
 
@@ -127,6 +127,9 @@ namespace the {
 
         int varDebugCount  = 0;
         int varImportCount = 0;
+        const auto varIsRelease = configs().count("release"sv)>0;
+        const static std::regex varRegexTheDebug{ u8R"(_the_debug)", std::regex::icase };
+
         for (const auto & varLine : varLines) {
 
             const auto varOldDebugCount = varDebugCount;
@@ -140,8 +143,7 @@ namespace the {
 
             if ((0 < varDebugCount) || (0 < varOldDebugCount)) {
                 varOutStream << u8"/*remove debug information*/"sv << '\n';
-            } if(varImportCount>0) {
-                const static std::regex varRegexTheDebug{ u8R"(the_debug)", std::regex::icase };
+            } else if(varIsRelease && (varImportCount>0) ) {
                 varOutStream <<std::regex_replace(varLine,varRegexTheDebug,""s) << '\n';
             } else {
                 varOutStream << varLine << '\n';
