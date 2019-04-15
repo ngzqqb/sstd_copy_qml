@@ -10,5 +10,3 @@ QT -= core
 SOURCES += $$PWD/main.cpp
 
 DESTDIR = $$SSTD_LIBRARY_OUTPUT_PATH
-
-
