@@ -8,12 +8,18 @@
     /*end:debug*/
 //替换为：
     /*remove debug information*/
+//将
+    /*begin:import*/
+    /*end:import*/
+//之间的the_debug删除
 
 #include <list>
+#include <set>
 
 #include <regex>
 #include <string>
 #include <string_view>
+using namespace std::string_literals;
 using namespace std::string_view_literals;
 
 #include <utility>
@@ -49,6 +55,11 @@ namespace the {
 
 namespace the {
 
+    inline std::set<std::string> & configs(){
+        static std::set<std::string> varAns;
+        return varAns;
+    }
+
     inline bool deleteDir(const filesystem::path & arg) try {
         return filesystem::remove_all(arg);
     } catch (...) {
@@ -68,6 +79,8 @@ namespace the {
             normal_line = 0,
             begin_type = 1,
             end_type = 2,
+            begin_import_type,
+            end_import_type
         };
 
         class Line : public std::string {
@@ -79,6 +92,8 @@ namespace the {
 
         const static std::regex varRegexDebugBegin{ "(?:" "\xef" "\xbb" "\xbf" ")?" "\\s*/\\*begin:debug\\*/\\s*" , std::regex::icase };
         const static std::regex varRegexDebugEnd{ u8R"(\s*/\*end:debug\*/\s*)", std::regex::icase };
+        const static std::regex varRegexImportBegin{ "(?:" "\xef" "\xbb" "\xbf" ")?" "\\s*/\\*begin:import\\*/\\s*" , std::regex::icase };
+        const static std::regex varRegexImportEnd{ u8R"(\s*/\*end:import\*/\s*)", std::regex::icase };
         bool hasDebugData = false;
 
         while (varReadStream.good()) {
@@ -90,6 +105,12 @@ namespace the {
                     hasDebugData = true;
                 } else if (std::regex_match(varLine, varRegexDebugEnd)) {
                     varLine.type = end_type;
+                    hasDebugData = true;
+                } else if(std::regex_match(varLine,varRegexImportEnd)){
+                    varLine.type = end_import_type;
+                    hasDebugData = true;
+                } else if(std::regex_match(varLine,varRegexImportBegin)) {
+                    varLine.type = begin_import_type;
                     hasDebugData = true;
                 }
             }
@@ -104,18 +125,24 @@ namespace the {
             return;
         }
 
-        int varDebugCount = 0;
+        int varDebugCount  = 0;
+        int varImportCount = 0;
         for (const auto & varLine : varLines) {
 
             const auto varOldDebugCount = varDebugCount;
-            if (varLine.type == begin_type) {
-                ++varDebugCount;
-            } else if (varLine.type == end_type) {
-                --varDebugCount;
+
+            switch (varLine.type) {
+                case begin_type:++varDebugCount;break;
+                case end_type:--varDebugCount;break;
+                case begin_import_type:++varImportCount;break;
+                case end_import_type:--varImportCount;break;
             }
 
             if ((0 < varDebugCount) || (0 < varOldDebugCount)) {
                 varOutStream << u8"/*remove debug information*/"sv << '\n';
+            } if(varImportCount>0) {
+                const static std::regex varRegexTheDebug{ u8R"(the_debug)", std::regex::icase };
+                varOutStream <<std::regex_replace(varLine,varRegexTheDebug,""s) << '\n';
             } else {
                 varOutStream << varLine << '\n';
             }
@@ -277,12 +304,22 @@ namespace the {
 }/*namespace the*/
 
 
+/*
+0:the application
+1:from file or dir
+2:to file or dir
+3...:options
+*/
 int main(int argc, char ** argv) try {
 
     static_assert(UnknowError < 0);
 
     if (argc < 3) {
         return ArgNotEnough;
+    }
+
+    for(int varIndex =3;varIndex<argc;++varIndex){
+        the::configs().insert( argv[varIndex] );
     }
 
     the::filesystem::path varFrom(argv[1]);
