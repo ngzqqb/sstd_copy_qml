@@ -122,6 +122,10 @@ namespace the {
         }
 
         if (false == hasDebugData) {
+            /*简单复制*/
+            for (const auto & varI : varLines) {
+                varOutStream << varI << '\n';
+            }
             return;
         }
 
