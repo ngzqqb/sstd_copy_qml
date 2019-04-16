@@ -135,6 +135,39 @@ namespace the {
     } catch (...) {
     }
 
+    inline bool isSame(const filesystem::path & varFrom, const filesystem::path & varTo) {
+        std::ifstream varRead1{ getStreamFileName(varFrom),std::ios::binary };
+        std::ifstream varRead2{ getStreamFileName(varTo),std::ios::binary };
+
+        if (varRead1.is_open() == false) {
+            return false;
+        }
+
+        if (varRead2.is_open() == false) {
+            return false;
+        }
+
+        alignas(32) char varBuffer1[1024 * 4];
+        alignas(32) char varBuffer2[1024 * 4];
+
+        do {
+            varRead1.read(varBuffer1, sizeof(varBuffer1));
+            auto varValue1 = varRead1.gcount();
+            varRead2.read(varBuffer2, sizeof(varBuffer2));
+            auto varValue2 = varRead2.gcount();
+            if (varValue1 != varValue2) {
+                return false;
+            }
+            if ((varValue1 > 0) &&
+                (0 != memcmp(varBuffer1, varBuffer2, static_cast<std::size_t>(varValue1)))) {
+                return false;
+            }
+        } while (varRead1.good() && varRead2.good());
+
+        return varRead1.good() == varRead2.good();
+
+    }
+
     template<typename T, typename U>
     inline void __parser_qml(T &varReadStream, U&varOutStream) try {
 
@@ -258,23 +291,28 @@ namespace the {
 
         }
 
-        std::ifstream varRead{ getStreamFileName(varFrom) , std::ios::binary };
-        std::ofstream varWrite{ getStreamFileName(varTo)  , std::ios::binary };
-
-        varRead.sync_with_stdio(false);
-        varWrite.sync_with_stdio(false);
+        class ReadWrite {
+        public:
+            std::ifstream read;
+            std::ofstream write;
+            inline ReadWrite(const filesystem::path & varFrom,
+                const filesystem::path & varTo) : read{ getStreamFileName(varFrom) , std::ios::binary },
+                write{ getStreamFileName(varTo)  , std::ios::binary }{
+                read.sync_with_stdio(false);
+                write.sync_with_stdio(false);
+                if (false == read.is_open()) {
+                    throw false;
+                }
+                if (false == write.is_open()) {
+                    throw false;
+                }
+            }
+        };
 
         if (varTo.filename().wstring() == LR"(qmldir)"sv) {
-            __parser_qmldir(varRead, varWrite);
+            ReadWrite var{ varFrom,varTo };
+            __parser_qmldir(var.read, var.write);
             return true;
-        }
-
-        if (false == varRead.is_open()) {
-            return false;
-        }
-
-        if (false == varWrite.is_open()) {
-            return false;
         }
 
         bool varIsQml;
@@ -288,9 +326,19 @@ namespace the {
         }
 
         if (varIsQml) {
-            __parser_qml(varRead, varWrite);
+            ReadWrite var{ varFrom,varTo };
+            __parser_qml(var.read, var.write);
         } else {
-            varWrite << varRead.rdbuf();
+            if (filesystem::exists(varTo)) {
+                if (isSame(varFrom, varTo)) {
+                    return true;
+                }
+                ReadWrite var{ varFrom,varTo };
+                var.write << var.read.rdbuf();
+            } else {
+                ReadWrite var{ varFrom,varTo };
+                var.write << var.read.rdbuf();
+            }
         }
 
         return true;
