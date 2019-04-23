@@ -15,10 +15,11 @@
 
 #include <list>
 #include <set>
-
+#include <array>
 #include <regex>
 #include <string>
 #include <string_view>
+#include <cassert>
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
@@ -89,8 +90,27 @@ namespace the {
         return { varArg.data() + varFirstNotSpace, varLength };
     }
 
+    inline void remove_utf8_bom(std::ifstream & argReadStream) {
+        std::array varBuffer{ '1','2','3' };
+        argReadStream.read(varBuffer.data(), varBuffer.size());
+        if (argReadStream.gcount() < 3) {
+        } else {
+            constexpr std::array varBom{ '\xEF','\xBB','\xBF' };
+            if (varBuffer == varBom) {
+                return;
+            }
+        }
+        argReadStream.clear();
+        argReadStream.seekg(0);
+        assert(argReadStream.good());
+        return;
+    }
+
     template<typename T, typename U>
     inline void __parser_qmldir(T &varReadStream, U&varOutStream) try {
+
+        /*qmldir 不需要bom*/
+        remove_utf8_bom(varReadStream);
 
         std::string varDebugModuleName;
         std::string varReleaseModuleName;
