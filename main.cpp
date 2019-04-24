@@ -90,7 +90,8 @@ namespace the {
         return { varArg.data() + varFirstNotSpace, varLength };
     }
 
-    inline void remove_utf8_bom(std::ifstream & argReadStream) {
+    template<typename T>
+    inline void remove_utf8_bom(T & argReadStream) {
         std::array varBuffer{ '1','2','3' };
         argReadStream.read(varBuffer.data(), varBuffer.size());
         if (argReadStream.gcount() < 3) {
