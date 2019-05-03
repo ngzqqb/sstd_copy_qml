@@ -468,7 +468,7 @@ int main(int argc, char ** argv) try {
         the::configs().insert(argv[varIndex]);
     }
 
-    if(the::configs().count("skip")>0){
+    if(the::configs().count("skip"sv)>0){
         return 0;
     }
 
