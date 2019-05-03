@@ -468,6 +468,10 @@ int main(int argc, char ** argv) try {
         the::configs().insert(argv[varIndex]);
     }
 
+    if(the::configs().count("skip")>0){
+        return 0;
+    }
+
     the::filesystem::path varFrom(argv[1]);
     the::filesystem::path varTo(argv[2]);
 
