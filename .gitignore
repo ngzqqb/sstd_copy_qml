@@ -4,6 +4,7 @@ release/
 *.user
 *.vcxproj*
 *.sln
+.vscode/
 
 # C++ objects and libs
 *.slo
