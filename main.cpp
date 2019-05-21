@@ -168,8 +168,8 @@ namespace the {
             return false;
         }
 
-        alignas(32) char varBuffer1[1024 * 4];
-        alignas(32) char varBuffer2[1024 * 4];
+        alignas(16) char varBuffer1[1024 * 4];
+        alignas(16) char varBuffer2[1024 * 4];
 
         do {
             varRead1.read(varBuffer1, sizeof(varBuffer1));
